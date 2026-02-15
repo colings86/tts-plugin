@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "tts",
-      "source": ".",
+      "source": "./plugins/tts",
       "description": "Text-to-speech system for Claude Code that reads Claude's responses aloud using kokoro-tts",
       "version": "0.1.0",
       "author": {
