@@ -182,10 +182,11 @@ process_and_speak_new_messages() {
     mkdir -p "$TTS_STATE_DIR" 2>/dev/null
 
     # Acquire lock to prevent concurrent processing (prevents duplicates)
+    # Wait up to 60 seconds for lock instead of skipping immediately
     local lock_file="/tmp/tts-lock-${session_id}"
     exec 200>"$lock_file"
-    if ! flock -n 200; then
-        echo "Another TTS instance is running, skipping..." >> "$log_file" 2>&1
+    if ! flock -w 60 200; then
+        echo "Failed to acquire lock after 60s, skipping..." >> "$log_file" 2>&1
         return 0
     fi
     # Lock acquired - will auto-release when function exits
