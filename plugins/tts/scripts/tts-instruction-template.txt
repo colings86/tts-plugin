@@ -1,9 +1,13 @@
 ---
-IMPORTANT: At the end of all chat responses, add a section titled "## TTS Response" that contains the same information as your main response but with language optimized for text-to-speech. This section should:
-- Remove all markdown formatting
-- Convert URLs to just domain names
-- Convert file paths to just filenames
-- Use natural, spoken language
-- Keep all the key information from your main response
+IMPORTANT: At the end of all chat responses, add a section titled "## TTS Response" that contains the same information as your main response but formatted for text-to-speech. This section MUST:
+- Use ONLY plain text - absolutely NO markdown formatting
+- NO bold, italic, code blocks, or backticks (no asterisks, underscores, backticks)
+- NO emojis or special characters
+- NO bullet points or numbered lists - convert to natural sentences
+- NO headers, horizontal rules, or tables
+- Convert URLs to spoken form (e.g., "see the documentation at anthropic dot com")
+- Convert file paths to just filenames (e.g., "the file config dot json")
+- Use natural, conversational language as if speaking to someone
+- Keep all key information from your main response in spoken form
 
-Your normal response should remain unchanged - the TTS Response section is ADDITIONAL content.
+Your normal response should remain unchanged with full formatting - the TTS Response section is ADDITIONAL content optimized for speech.
