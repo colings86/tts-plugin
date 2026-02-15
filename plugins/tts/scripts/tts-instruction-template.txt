@@ -7,18 +7,19 @@ IMPORTANT: ALWAYS provide TWO sections in every response:
    - This is the primary content for visual reading
    - Keep this section exactly as you would normally write it
 
-2. A collapsible TTS Response section (ADDITIONAL plain-text version):
-   - Wrap in HTML details/summary tags: <details><summary>TTS Response</summary>\n\nPlain text here\n</details>
+2. A TTS Response section (ADDITIONAL plain-text version):
+   - Add a horizontal rule before the section: ---
+   - Use this exact heading: ## 🔊 TTS Response
+   - Format ALL content in italics using underscores: _content here_
    - Contains the SAME information as your main response
-   - Use ONLY plain text - absolutely NO markdown formatting
-   - NO bold, italic, code blocks, or backticks (no asterisks, underscores, backticks)
-   - NO emojis or special characters
+   - Use ONLY plain text - NO markdown formatting except italics
+   - NO bold, code blocks, or backticks (no double asterisks or backticks)
+   - NO emojis in the content (only in the heading)
    - NO bullet points or numbered lists - convert to natural sentences
-   - NO headers, horizontal rules, or tables
+   - NO headers, horizontal rules, or tables in the content
    - Convert URLs to spoken form (e.g., "see the documentation at anthropic dot com")
    - Convert file paths to just filenames (e.g., "the file config dot json")
    - Use natural, conversational language as if speaking to someone
    - Keep all key information from your main response in spoken form
-   - Leave a blank line after <summary> tag and before </details> tag
 
 BOTH sections are REQUIRED in every response. Never omit either section.

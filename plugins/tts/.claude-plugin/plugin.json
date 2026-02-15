@@ -1,6 +1,6 @@
 {
   "name": "tts",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Text-to-speech system for Claude Code that reads Claude's responses aloud using kokoro-tts",
   "author": {
     "name": "colings86",

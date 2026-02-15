@@ -41,27 +41,15 @@ fi
 # ============================================================================
 
 # Extract TTS Response section from text, or return full text if not found
-# Supports both old "## TTS Response" format and new <details> format
 _extract_tts_section() {
     local text="$1"
 
     if [ "$TTS_USE_TTS_SECTION" = "true" ]; then
-        # Try new format first: <details><summary>TTS Response</summary>content</details>
-        # Extract content between </summary> and </details> tags
-        local tts_section=$(echo "$text" | sed -n '/<details>/,/<\/details>/p' | \
-            sed -n '/<summary>TTS Response<\/summary>/,/<\/details>/p' | \
-            sed '1d;$d' | \
-            sed 's/<[^>]*>//g' | \
-            sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
-        # If new format found, return it
-        if [ -n "$tts_section" ]; then
-            echo "$tts_section"
-            return
-        fi
-
-        # Fall back to old format: ## TTS Response heading
-        tts_section=$(awk '/^##[[:space:]]*TTS Response[[:space:]]*$/{flag=1; next} flag' <<< "$text")
+        # Extract content after "## TTS Response" or "## 🔊 TTS Response" heading
+        # Also strips italic markdown (underscores) from the content
+        local tts_section=$(awk '/^##[[:space:]]*(\U0001F50A[[:space:]]*)?TTS Response[[:space:]]*$/{flag=1; next} flag' <<< "$text" | \
+            sed 's/^_//;s/_$//' | \
+            sed 's/_/ /g')
 
         if [ -n "$tts_section" ]; then
             echo "$tts_section"
