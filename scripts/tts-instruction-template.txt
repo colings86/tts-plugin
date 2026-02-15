@@ -1,0 +1,9 @@
+---
+IMPORTANT: At the end of all chat responses, add a section titled "## TTS Response" that contains the same information as your main response but with language optimized for text-to-speech. This section should:
+- Remove all markdown formatting
+- Convert URLs to just domain names
+- Convert file paths to just filenames
+- Use natural, spoken language
+- Keep all the key information from your main response
+
+Your normal response should remain unchanged - the TTS Response section is ADDITIONAL content.
