@@ -248,8 +248,16 @@ process_and_speak_new_messages() {
             local tts_text=$(_extract_tts_section "$msg_text")
             tts_text=$(_truncate_text "$tts_text")
 
+            # Skip empty messages
             if [ -z "$tts_text" ]; then
                 echo "No text to speak after processing, skipping" >> "$log_file"
+                echo "$msg_uuid" > "$uuid_tracker"
+                continue
+            fi
+
+            # Skip "No response requested" messages from local commands
+            if [ "$tts_text" = "No response requested." ]; then
+                echo "Skipping 'No response requested' message" >> "$log_file"
                 echo "$msg_uuid" > "$uuid_tracker"
                 continue
             fi
