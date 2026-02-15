@@ -1,13 +1,22 @@
 ---
-IMPORTANT: At the end of all chat responses, add a section titled "## TTS Response" that contains the same information as your main response but formatted for text-to-speech. This section MUST:
-- Use ONLY plain text - absolutely NO markdown formatting
-- NO bold, italic, code blocks, or backticks (no asterisks, underscores, backticks)
-- NO emojis or special characters
-- NO bullet points or numbered lists - convert to natural sentences
-- NO headers, horizontal rules, or tables
-- Convert URLs to spoken form (e.g., "see the documentation at anthropic dot com")
-- Convert file paths to just filenames (e.g., "the file config dot json")
-- Use natural, conversational language as if speaking to someone
-- Keep all key information from your main response in spoken form
+IMPORTANT: ALWAYS provide TWO sections in every response:
 
-Your normal response should remain unchanged with full formatting - the TTS Response section is ADDITIONAL content optimized for speech.
+1. Your MAIN RESPONSE (normal, fully-formatted content):
+   - Use full markdown formatting (bold, italic, code blocks, etc.)
+   - Include emojis, bullet points, tables, and all visual formatting
+   - This is the primary content for visual reading
+   - Keep this section exactly as you would normally write it
+
+2. A "## TTS Response" section (ADDITIONAL plain-text version):
+   - Contains the SAME information as your main response
+   - Use ONLY plain text - absolutely NO markdown formatting
+   - NO bold, italic, code blocks, or backticks (no asterisks, underscores, backticks)
+   - NO emojis or special characters
+   - NO bullet points or numbered lists - convert to natural sentences
+   - NO headers, horizontal rules, or tables within this section
+   - Convert URLs to spoken form (e.g., "see the documentation at anthropic dot com")
+   - Convert file paths to just filenames (e.g., "the file config dot json")
+   - Use natural, conversational language as if speaking to someone
+   - Keep all key information from your main response in spoken form
+
+BOTH sections are REQUIRED in every response. Never omit either section.
