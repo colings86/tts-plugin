@@ -144,7 +144,9 @@ _extract_assistant_messages_with_lines() {
             # Extract ALL text content from this line and combine into one string
             MESSAGE_TEXT=$(echo "$json_line" | jq -r '[.message.content[]? | select(.type == "text") | .text] | join(" ")' 2>/dev/null)
             if [ -n "$MESSAGE_TEXT" ]; then
-                echo "${current_line}|${MESSAGE_TEXT}"
+                # Encode newlines as literal \n so the output is a single line
+                MESSAGE_TEXT_ENCODED=$(echo "$MESSAGE_TEXT" | sed ':a;N;$!ba;s/\n/\\n/g')
+                echo "${current_line}|${MESSAGE_TEXT_ENCODED}"
             fi
         fi
     done
@@ -224,6 +226,10 @@ process_and_speak_new_messages() {
     {
         while IFS='|' read -r msg_line msg_text; do
             messages_found=1
+
+            # Decode newlines from literal \n back to actual newlines
+            msg_text=$(echo "$msg_text" | sed 's/\\n/\n/g')
+
             echo "Processing transcript line $msg_line..." >> "$log_file"
             echo "Raw text (first 200 chars): ${msg_text:0:200}" >> "$log_file"
 
