@@ -45,9 +45,9 @@ _extract_tts_section() {
     local text="$1"
 
     if [ "$TTS_USE_TTS_SECTION" = "true" ]; then
-        # Extract content after "## TTS Response" or "## 🔊 TTS Response" heading
+        # Extract content after heading containing "TTS Response" (with or without emoji)
         # Also strips italic markdown (underscores) from the content
-        local tts_section=$(awk '/^##[[:space:]]*(\U0001F50A[[:space:]]*)?TTS Response[[:space:]]*$/{flag=1; next} flag' <<< "$text" | \
+        local tts_section=$(awk '/^##.*TTS Response/{flag=1; next} flag' <<< "$text" | \
             sed 's/^_//;s/_$//' | \
             sed 's/_/ /g')
 
