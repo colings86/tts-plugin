@@ -1,0 +1,18 @@
+{
+  "name": "tts-plugin",
+  "version": "0.1.0",
+  "description": "Text-to-speech system for Claude Code that reads Claude's responses aloud using kokoro-tts",
+  "author": {
+    "name": "colings86",
+    "email": "colings86@users.noreply.github.com"
+  },
+  "keywords": [
+    "tts",
+    "text-to-speech",
+    "accessibility",
+    "audio",
+    "kokoro-tts"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/colings86/tts-plugin"
+}
