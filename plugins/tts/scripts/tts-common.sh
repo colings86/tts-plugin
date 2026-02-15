@@ -231,13 +231,13 @@ process_and_speak_new_messages() {
 
     # Process all transcript entries and pipe through ONE TTS process
     # This is much more efficient than creating a new process per entry
-    local last_processed_uuid=""
+    # Use temp file to track last UUID since variables set in subshell don't persist
+    local uuid_tracker="/tmp/tts-uuid-tracker-${session_id}-$$"
+    rm -f "$uuid_tracker"
     echo "Starting single kokoro-tts process for all new messages..." >> "$log_file"
 
     {
         while IFS='|' read -r msg_uuid msg_text; do
-            messages_found=1
-
             # Decode newlines from placeholder (|||NL|||) back to actual newlines
             msg_text=$(printf '%s' "$msg_text" | sed 's/|||NL|||/\n/g')
 
@@ -250,7 +250,7 @@ process_and_speak_new_messages() {
 
             if [ -z "$tts_text" ]; then
                 echo "No text to speak after processing, skipping" >> "$log_file"
-                last_processed_uuid=$msg_uuid
+                echo "$msg_uuid" > "$uuid_tracker"
                 continue
             fi
 
@@ -259,7 +259,8 @@ process_and_speak_new_messages() {
 
             # Output text to the TTS pipe
             echo "$tts_text"
-            last_processed_uuid=$msg_uuid
+            # Track last processed UUID in temp file (survives subshell)
+            echo "$msg_uuid" > "$uuid_tracker"
             echo "Queued UUID $msg_uuid for TTS" >> "$log_file"
         done < <(_extract_assistant_messages_since_uuid "$last_uuid" "$transcript_path")
     } | kokoro-tts - --stream \
@@ -272,8 +273,14 @@ process_and_speak_new_messages() {
 
     echo "TTS process completed" >> "$log_file"
 
-    # Check if any messages were processed by seeing if last_processed_uuid is set
-    # (messages_found variable doesn't work due to subshell scope)
+    # Read last processed UUID from temp file
+    local last_processed_uuid=""
+    if [ -f "$uuid_tracker" ]; then
+        last_processed_uuid=$(cat "$uuid_tracker")
+        rm -f "$uuid_tracker"
+    fi
+
+    # Check if any messages were processed
     if [ -z "$last_processed_uuid" ]; then
         echo "No assistant messages found" >> "$log_file"
         return 0
