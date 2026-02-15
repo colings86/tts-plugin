@@ -291,8 +291,12 @@ interrupt_tts_and_mark_read() {
 
     # Mark all current messages as read (prevents re-speaking on next run)
     if [ -n "$session_id" ] && [ -f "$transcript_path" ]; then
-        # Get the last UUID from the transcript
-        local last_uuid=$(tail -n 20 "$transcript_path" | tac | while IFS= read -r json_line; do
+        # Get the last UUID from the transcript (use tail -r for macOS, tac for Linux)
+        local reverse_cmd="tail -r"
+        if ! command -v tail >/dev/null 2>&1 || ! tail -r /dev/null >/dev/null 2>&1; then
+            reverse_cmd="tac"
+        fi
+        local last_uuid=$(tail -n 20 "$transcript_path" | $reverse_cmd | while IFS= read -r json_line; do
             ENTRY_UUID=$(echo "$json_line" | jq -r '.uuid // empty' 2>/dev/null)
             if [ -n "$ENTRY_UUID" ]; then
                 echo "$ENTRY_UUID"
