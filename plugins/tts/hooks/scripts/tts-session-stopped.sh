@@ -11,6 +11,9 @@ INPUT=$(cat)
 # Extract session ID
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 
+# Kill any running TTS processes before exit
+pkill -f kokoro-tts 2>/dev/null
+
 # Clean up session state
 cleanup_session "$SESSION_ID"
 
