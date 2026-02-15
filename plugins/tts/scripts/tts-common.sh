@@ -272,7 +272,9 @@ process_and_speak_new_messages() {
 
     echo "TTS process completed" >> "$log_file"
 
-    if [ "$messages_found" -eq 0 ]; then
+    # Check if any messages were processed by seeing if last_processed_uuid is set
+    # (messages_found variable doesn't work due to subshell scope)
+    if [ -z "$last_processed_uuid" ]; then
         echo "No assistant messages found" >> "$log_file"
         return 0
     fi
