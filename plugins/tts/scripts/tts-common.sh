@@ -118,7 +118,11 @@ _update_session_state() {
     local uuid="$2"
     local state_file="${TTS_STATE_DIR}/claude-tts-state-${session_id}.txt"
 
-    echo "$uuid" > "$state_file"
+    # Use atomic write: write to temp file, then move
+    # This ensures the file is fully written before it's visible
+    local temp_file="${state_file}.tmp.$$"
+    echo "$uuid" > "$temp_file"
+    mv "$temp_file" "$state_file"
 }
 
 # Extract assistant messages since a given UUID
