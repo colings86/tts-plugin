@@ -2,8 +2,8 @@
 
 **Session Date**: 2026-02-15
 **Plugin Location**: ~/src/github.com/colings86/tts-plugin
-**Git Repository**: Initialized, currently at version 0.1.9
-**Current Status**: All Phases Complete (1-8) - Production Ready
+**Git Repository**: Initialized, currently at version 0.1.14
+**Current Status**: All Phases Complete (1-8) - Production Ready with UX Refinements
 
 ---
 
@@ -246,6 +246,26 @@ tts-plugin/
    - **Fix**: Added filter to skip these messages
    - **Commit**: `1055d27` - feat(tts-common): filter out "No response requested" messages
 
+   **Bug #5: TTS Not Stopping on Exit** (v0.1.10)
+   - **Issue**: kokoro-tts processes continued playing after Claude Code exit
+   - **Fix**: Added `pkill -f kokoro-tts` to SessionEnd hook
+   - **Commit**: `5df5b33` - fix(hooks): stop TTS on exit
+
+   **Bug #6: TTS Instruction Not Injecting** (v0.1.10)
+   - **Issue**: UserPromptSubmit hook was modifying `.message` field which doesn't work
+   - **Fix**: Changed to use `additionalContext` field for instruction injection
+   - **Commit**: `5df5b33` - fix(hooks): use additionalContext for instruction injection
+
+   **Bug #7: Markdown Formatting in TTS** (v0.1.11-0.1.14)
+   - **Issue**: Bold text, emojis, and markdown caused awkward speech (asterisks, emoji names)
+   - **Fix**: Updated instruction template to forbid all markdown in TTS Response section
+   - **Iterations**:
+     - v0.1.11: Explicit markdown prohibition
+     - v0.1.12: Clarified both sections always required
+     - v0.1.13: Attempted collapsible details block (reverted - not supported)
+     - v0.1.14: Markdown heading with visual distinction (emoji, horizontal rule, italics)
+   - **Commits**: `5df5b33`, `ab57f18`, `87cbf52`, `2abb93e`, `f7f3550`
+
 3. **Testing Results**:
    - All commands work correctly with proper argument handling
    - Configuration wizard (both Quick and Advanced) works perfectly
@@ -253,11 +273,17 @@ tts-plugin/
    - Hooks now properly coordinate without duplicates
    - State tracking works correctly across hook invocations
    - No more duplicate messages or unwanted noise
+   - TTS stops immediately on exit
+   - TTS Response section properly formatted and visually distinct
+   - Clean plain-text speech without markdown artifacts
 
-4. **Final Plugin Version**: 0.1.9
+4. **Final Plugin Version**: 0.1.14
    - Lock mechanism: Wait up to 60s instead of skipping
    - State tracking: Atomic file writes + temp file for UUID
    - Message filtering: Skip "No response requested" messages
+   - Exit cleanup: Kill TTS processes on SessionEnd
+   - Instruction injection: Use additionalContext field
+   - TTS formatting: Plain text with visual distinction (emoji heading, horizontal rule, italics)
    - All hooks working correctly together
 
 ---
@@ -482,4 +508,4 @@ TTS_LOG_DIR=$HOME/.local/state/claude-tts/logs
 ---
 
 **Last Updated**: 2026-02-15
-**Session Status**: All Phases Complete (1-8) - Production Ready at v0.1.9
+**Session Status**: All Phases Complete (1-8) - Production Ready at v0.1.14

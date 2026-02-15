@@ -2,6 +2,37 @@
 
 This document outlines potential improvements and enhancements for future versions of the TTS Plugin.
 
+**Current Version**: v0.1.14
+**Last Updated**: 2026-02-15
+
+---
+
+## ✅ Completed Improvements (v0.1.9 → v0.1.14)
+
+These improvements were implemented during testing and refinement:
+
+### Bug Fixes
+1. ✅ **Lock Race Condition** (v0.1.5) - Fixed hooks to wait for locks instead of skipping
+2. ✅ **Subshell Variable Scope** (v0.1.7-0.1.8) - UUID tracking using temp files
+3. ✅ **Duplicate Messages** (v0.1.8) - State properly updated between hooks
+4. ✅ **"No Response Requested" Filtering** (v0.1.9) - Skip local command responses
+5. ✅ **Exit Cleanup** (v0.1.10) - TTS processes killed when Claude Code exits
+6. ✅ **Instruction Injection** (v0.1.10) - UserPromptSubmit uses additionalContext
+7. ✅ **Markdown Formatting in Speech** (v0.1.11-0.1.14) - Plain text TTS with visual distinction
+
+### UX Improvements
+8. ✅ **TTS Response Visual Distinction** (v0.1.14) - Emoji heading, horizontal rule, italic formatting
+9. ✅ **Plain Text Speech** (v0.1.11) - No markdown artifacts (asterisks, emojis) in audio
+10. ✅ **Both Sections Required** (v0.1.12) - Always provide formatted + TTS versions
+
+### Lessons Learned
+- **HTML Collapsible Blocks**: `<details>` and `<summary>` tags are not supported in Claude Code's markdown renderer (tested v0.1.13, reverted v0.1.14)
+- **Bash Subshell Scope**: Variables set inside `{ } | command` blocks don't persist - use temp files for state tracking
+- **Hook APIs**: UserPromptSubmit hooks use `additionalContext` field, not `.message` modification
+- **File Locking**: Use `flock -w` (wait) instead of `flock -n` (non-blocking) to prevent race conditions
+
+---
+
 ## Priority Matrix
 
 | Priority | Effort | Description |
@@ -89,24 +120,33 @@ This document outlines potential improvements and enhancements for future versio
 
 ### 🟡 Medium Priority, Medium Effort
 
-11. **Smart Speed Adjustment**
+11. **Alternative TTS Response Presentation**
+    - Explore visual collapsing alternatives (HTML details/summary doesn't work)
+    - Consider: minimized font, subtle background color, or collapsible via Claude Code UI extension
+    - Goal: Keep TTS Response visible but visually de-emphasized
+    - **Effort**: 2-3 hours (requires Claude Code UI research)
+    - **Value**: Cleaner response presentation without losing TTS content
+
+12. **Smart Speed Adjustment**
     - Automatically slow down for code blocks
     - Speed up for natural language
     - Different speeds for errors vs. success messages
     - **Effort**: 3-4 hours
     - **Value**: Better comprehension of different content types
 
-12. **TTS Queue Management**
+13. **TTS Queue Management**
     - Queue multiple messages instead of interrupting
     - Allow skipping through queue
     - Configurable queue behavior (interrupt vs. queue)
     - **Effort**: 4-5 hours
     - **Value**: Better handling of rapid responses
 
-13. **Content Filtering**
-    - Skip TTS for specific patterns (e.g., long JSON output)
-    - Configurable skip patterns in .env
-    - Smart detection of "un-speakable" content
+14. **Enhanced Content Filtering**
+    - ✅ Already filters "No response requested"
+    - Add: Skip TTS for specific patterns (e.g., long JSON output, code dumps)
+    - Add: Configurable skip patterns in .env (regex support)
+    - Add: Smart detection of "un-speakable" content (base64, hex dumps)
+    - Add: Min/max length thresholds per message type
     - **Effort**: 3-4 hours
     - **Value**: Avoids frustrating TTS of raw data
 
@@ -116,7 +156,7 @@ This document outlines potential improvements and enhancements for future versio
 
 ### 🟡 Medium Priority, High Effort
 
-14. **Multi-Engine Support**
+15. **Multi-Engine Support**
     - Support additional TTS engines:
       - macOS `say` (native on macOS)
       - Linux `espeak` (lightweight, widely available)
@@ -126,14 +166,14 @@ This document outlines potential improvements and enhancements for future versio
     - **Effort**: 8-10 hours
     - **Value**: Works out-of-box on more systems
 
-15. **Streaming TTS**
+16. **Streaming TTS**
     - Speak as Claude types, not just when complete
     - Real-time audio feedback during long responses
     - Requires monitoring transcript changes in real-time
     - **Effort**: 10-12 hours
     - **Value**: Dramatically faster perception of responses
 
-16. **Voice Cloning**
+17. **Voice Cloning**
     - Leverage kokoro-tts voice cloning features
     - Allow users to create custom voices
     - Document voice file creation process
@@ -142,21 +182,21 @@ This document outlines potential improvements and enhancements for future versio
 
 ### 🟢 Low Priority, High Effort
 
-17. **TTS Rate Limiting**
+18. **TTS Rate Limiting**
     - Skip TTS if responses are too frequent (e.g., <2s apart)
     - Prevents audio spam during rapid tool execution
     - Configurable threshold
     - **Effort**: 4-5 hours
     - **Value**: Reduces annoyance in verbose sessions
 
-18. **Multi-Language Auto-Detection**
+19. **Multi-Language Auto-Detection**
     - Detect language of response
     - Automatically switch TTS_LANG
     - Requires language detection library
     - **Effort**: 8-10 hours
     - **Value**: Better for multilingual users
 
-19. **Audio Effects**
+20. **Audio Effects**
     - Add audio effects (e.g., different pitch for errors)
     - Sound effects for events (tool start/end)
     - Configurable effect library
@@ -169,7 +209,7 @@ This document outlines potential improvements and enhancements for future versio
 
 ### 🟢 Low Priority, Very High Effort
 
-20. **Web Dashboard**
+21. **Web Dashboard**
     - Visual configuration interface
     - Real-time TTS preview
     - Voice library browser
@@ -177,7 +217,7 @@ This document outlines potential improvements and enhancements for future versio
     - **Effort**: 20-30 hours
     - **Value**: Greatly improved UX for non-technical users
 
-21. **Analytics & Insights**
+22. **Analytics & Insights**
     - Track TTS usage statistics
     - Voice preference analytics
     - Most-spoken phrases
@@ -185,7 +225,7 @@ This document outlines potential improvements and enhancements for future versio
     - **Effort**: 15-20 hours
     - **Value**: Interesting insights, not critical
 
-22. **Cloud Sync**
+23. **Cloud Sync**
     - Sync .env settings across machines
     - Cloud-based voice preferences
     - Requires cloud backend
@@ -198,21 +238,21 @@ This document outlines potential improvements and enhancements for future versio
 
 ### Recommended (All Priorities)
 
-23. **Automated Testing**
+24. **Automated Testing**
     - Unit tests for tts-common.sh functions
     - Integration tests for hooks
     - CI/CD with GitHub Actions
     - **Effort**: 10-15 hours
     - **Value**: Prevents regressions, increases confidence
 
-24. **Performance Profiling**
+25. **Performance Profiling**
     - Measure hook execution time
     - Optimize slow paths
     - Reduce latency between response and TTS
     - **Effort**: 4-6 hours
     - **Value**: Better responsiveness
 
-25. **Cross-Platform Testing**
+26. **Cross-Platform Testing**
     - Test on macOS (Intel + Apple Silicon)
     - Test on Linux (Ubuntu, Debian, Arch)
     - Document platform-specific issues
@@ -225,21 +265,21 @@ This document outlines potential improvements and enhancements for future versio
 
 ### Quick Wins
 
-26. **Video Walkthrough**
+27. **Video Walkthrough**
     - 3-5 minute demo video
     - Show installation, configuration, usage
     - Upload to YouTube, link from README
     - **Effort**: 2-3 hours
     - **Value**: Dramatically improves onboarding
 
-27. **FAQ Section**
+28. **FAQ Section**
     - Expand troubleshooting into detailed FAQ
     - Common issues from GitHub issues
     - Link from README
     - **Effort**: 1-2 hours
     - **Value**: Reduces support burden
 
-28. **Voice Comparison Table**
+29. **Voice Comparison Table**
     - Create table comparing all voices
     - Sample audio files for each voice
     - Personality descriptions (e.g., "af_bella: warm, clear")
@@ -252,21 +292,21 @@ This document outlines potential improvements and enhancements for future versio
 
 ### Future Considerations
 
-29. **Plugin API for Extensions**
+30. **Plugin API for Extensions**
     - Allow other plugins to trigger TTS
     - Expose TTS functions as SDK
     - Enable TTS from custom commands/agents
     - **Effort**: 8-10 hours
     - **Value**: Ecosystem growth
 
-30. **Voice Pack Marketplace**
+31. **Voice Pack Marketplace**
     - Repository of community voice files
     - Easy voice installation
     - Voice ratings and reviews
     - **Effort**: 15-20 hours
     - **Value**: Community engagement
 
-31. **Integrate with Claude Code UI**
+32. **Integrate with Claude Code UI**
     - Native TTS controls in Claude Code UI
     - Visual voice selector
     - Requires Claude Code core changes
@@ -277,7 +317,7 @@ This document outlines potential improvements and enhancements for future versio
 
 ## Prioritized Roadmap Suggestion
 
-### v0.1.1 (Bug Fixes & Polish) - 1-2 days
+### v0.1.15 (Bug Fixes & Polish) - 1-2 days
 - #1: Add Known Limitations to README
 - #2: Add Changelog File
 - #4: Add `/tts-plugin:status` Command
@@ -287,18 +327,19 @@ This document outlines potential improvements and enhancements for future versio
 - #8: Keyboard Shortcuts (pause, resume, skip, toggle)
 - #9: Visual Feedback (status indicator)
 - #10: Per-Project Settings
-- #13: Content Filtering
+- #11: Alternative TTS Response Presentation
+- #14: Enhanced Content Filtering (expand beyond "No response requested")
 
 ### v0.3.0 (Advanced Features) - 2-3 weeks
-- #14: Multi-Engine Support (say, espeak)
-- #15: Streaming TTS
-- #11: Smart Speed Adjustment
+- #15: Multi-Engine Support (say, espeak)
+- #16: Streaming TTS
+- #12: Smart Speed Adjustment
 
 ### v1.0.0 (Production Release) - 1-2 months
-- #23: Automated Testing
-- #24: Performance Profiling
-- #25: Cross-Platform Testing
-- #26: Video Walkthrough
+- #24: Automated Testing
+- #25: Performance Profiling
+- #26: Cross-Platform Testing
+- #27: Video Walkthrough
 - Selected features from v0.3.0 based on user feedback
 
 ---
@@ -314,14 +355,14 @@ This document outlines potential improvements and enhancements for future versio
 5. **Maintenance**: What reduces long-term maintenance burden?
 
 **Suggested approach**:
-1. Complete Phase 7 (Testing)
-2. Fix any critical bugs found
-3. Release v0.1.0
-4. Gather user feedback
-5. Prioritize v0.1.1 improvements based on feedback
+1. ✅ Complete Phase 7 (Testing) - Done at v0.1.14
+2. ✅ Fix critical bugs found - 7 bugs fixed during testing
+3. Tag v0.1.14 as stable release
+4. Gather user feedback from wider testing
+5. Prioritize v0.1.15 improvements based on feedback
 6. Plan v0.2.0 based on most-requested features
 
 ---
 
 **Last Updated**: 2026-02-15
-**Status**: Suggestions for post-v0.1.0 development
+**Status**: Suggestions for post-v0.1.14 development (Phase 7 testing complete)
