@@ -1,23 +1,18 @@
 {
   "name": "tts-plugin",
-  "display_name": "Text-to-Speech (TTS) Plugin",
-  "version": "0.1.0",
-  "description": "Text-to-speech system for Claude Code that reads Claude's responses aloud using kokoro-tts",
-  "category": "Accessibility",
-  "tags": [
-    "tts",
-    "text-to-speech",
-    "accessibility",
-    "audio",
-    "kokoro-tts",
-    "voice",
-    "speech"
-  ],
-  "author": {
+  "owner": {
     "name": "colings86",
-    "email": "colings86@users.noreply.github.com"
+    "email": "colings86@gmail.com"
   },
-  "repository": "https://github.com/colings86/tts-plugin",
-  "license": "MIT",
-  "homepage": "https://github.com/colings86/tts-plugin"
+  "plugins": [
+    {
+      "name": "tts",
+      "source": ".",
+      "description": "Text-to-speech system for Claude Code that reads Claude's responses aloud using kokoro-tts",
+      "version": "0.1.0",
+      "author": {
+        "name": "colings86"
+      }
+    }
+  ]
 }
