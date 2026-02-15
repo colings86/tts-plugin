@@ -1,9 +1,9 @@
 # TTS Plugin Development Progress
 
-**Session Date**: 2025-02-15
+**Session Date**: 2026-02-15
 **Plugin Location**: ~/src/github.com/colings86/tts-plugin
-**Git Repository**: Initialized with 3 commits
-**Current Status**: Phases 1-6 Complete, Ready for Testing (Phase 7)
+**Git Repository**: Initialized, currently at version 0.1.9
+**Current Status**: All Phases Complete (1-8) - Production Ready
 
 ---
 
@@ -207,44 +207,58 @@ tts-plugin/
 
 ---
 
-## Current Phase 🔄
+## Completed Phases (Continued) ✅
 
-### Phase 7: Testing & Verification ⏸️
-**Status**: Not Started - READY TO BEGIN
+### Phase 7: Testing & Verification ✅
+**Status**: Completed
 
-**What Needs to be Done**:
+**What Was Done**:
 
-1. **Installation Instructions**:
-   - Show user how to test locally:
-     ```bash
-     cc --plugin-dir ~/src/github.com/colings86/tts-plugin
-     ```
-   - Or copy to .claude-plugin/ for project testing
+1. **Verification Checklist - All Passed**: ✅
+   - [x] Skills load when triggered (tts-setup skill tested)
+   - [x] Commands appear in `/help` and execute correctly
+   - [x] `/tts:enable` works (both session-only and --persistent)
+   - [x] `/tts:disable` works (both session-only and --persistent)
+   - [x] `/tts:configure` works (Quick Setup and Advanced Setup tested)
+   - [x] `/tts:test` works (audio playback successful)
+   - [x] Hooks activate on events (PreToolUse and Stop hooks verified)
+   - [x] Settings files work (.env configuration verified)
 
-2. **Verification Checklist**:
-   - [ ] Skills load when triggered (ask "how do I set up TTS?")
-   - [ ] Commands appear in `/help` and execute correctly
-   - [ ] `/tts-plugin:enable` works
-   - [ ] `/tts-plugin:disable` works
-   - [ ] `/tts-plugin:configure` shows interactive wizard
-   - [ ] `/tts-plugin:test` plays sample audio
-   - [ ] Hooks activate on events
-   - [ ] Settings files work (.env configuration)
+2. **Critical Bugs Found and Fixed**:
 
-3. **Testing Recommendations**:
-   - For skills: Ask "How do I configure TTS?" to trigger tts-setup skill
-   - For commands: Run each command with various arguments
-   - For hooks: Use `claude --debug` to see hook execution
-   - For test: `tts-plugin:test "Hello world"` to verify audio
+   **Bug #1: Lock Race Condition** (v0.1.5)
+   - **Issue**: PreToolUse hook used non-blocking lock (`flock -n`), causing Stop hook to skip if PreToolUse was still speaking
+   - **Fix**: Changed to blocking lock with 60s timeout (`flock -w 60`)
+   - **Commit**: `bae4f4a` - fix: make hooks async so they don't block progress
 
-4. **Guide User Through Testing** (if they want guidance):
-   - Walk through testing each component
-   - Provide specific test cases
-   - Verify hook execution in debug mode
+   **Bug #2: Subshell Variable Scope** (v0.1.7)
+   - **Issue**: `messages_found` variable set inside subshell didn't persist to parent shell, causing function to always return early without updating state
+   - **Fix**: Check `last_processed_uuid` instead of `messages_found`
+   - **Commit**: `3ebf40c` - fix(tts-common): fix subshell variable scope preventing state updates
 
-**Prerequisites for Testing**:
-- kokoro-tts must be installed
-- User should restart Claude Code after enabling plugin
+   **Bug #3: UUID Variable Also in Subshell** (v0.1.8)
+   - **Issue**: `last_processed_uuid` was ALSO set inside subshell, same scope problem
+   - **Fix**: Use temp file to track UUID across subshell boundary
+   - **Commit**: `251e26f` - fix(tts-common): use temp file to track UUID across subshell boundary
+
+   **Bug #4: "No response requested" Noise** (v0.1.9)
+   - **Issue**: "No response requested" messages from local commands were being spoken
+   - **Fix**: Added filter to skip these messages
+   - **Commit**: `1055d27` - feat(tts-common): filter out "No response requested" messages
+
+3. **Testing Results**:
+   - All commands work correctly with proper argument handling
+   - Configuration wizard (both Quick and Advanced) works perfectly
+   - Audio playback confirmed with kokoro-tts
+   - Hooks now properly coordinate without duplicates
+   - State tracking works correctly across hook invocations
+   - No more duplicate messages or unwanted noise
+
+4. **Final Plugin Version**: 0.1.9
+   - Lock mechanism: Wait up to 60s instead of skipping
+   - State tracking: Atomic file writes + temp file for UUID
+   - Message filtering: Skip "No response requested" messages
+   - All hooks working correctly together
 
 ---
 
@@ -468,4 +482,4 @@ TTS_LOG_DIR=$HOME/.local/state/claude-tts/logs
 ---
 
 **Last Updated**: 2026-02-15
-**Session Status**: Phases 1-6, 8 Complete, Ready for Phase 7 (Testing)
+**Session Status**: All Phases Complete (1-8) - Production Ready at v0.1.9
