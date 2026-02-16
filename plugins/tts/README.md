@@ -41,35 +41,133 @@ kokoro-tts --help
 
 ## Configuration
 
-The plugin uses a `.env` file located at `~/.claude/tts-plugin.env` for configuration.
+The plugin uses a hierarchical `settings.json` configuration system that supports user-level, project-level, and local-level settings.
 
-### Creating Configuration
+### Configuration Hierarchy
+
+Settings are loaded and merged in this priority order (highest to lowest):
+
+1. **Local** (`.claude/plugins/tts/settings.local.json`) - Machine-specific overrides, not committed to git
+2. **Project** (`.claude/plugins/tts/settings.json`) - Team settings, committed to git
+3. **User** (`~/.claude/plugins/tts/settings.json`) - Personal defaults across all projects
+4. **Defaults** (shipped with plugin) - Base configuration
+
+This allows you to:
+- Set personal preferences globally
+- Share team settings via git
+- Override settings locally without affecting committed files
+
+### Quick Start
 
 Use the interactive configure command:
 ```bash
 /tts-plugin:configure
 ```
 
-Or manually create `~/.claude/tts-plugin.env` (see `.env.example` for template).
+This wizard will:
+1. Ask which configuration level to modify (user/project/local)
+2. Show current merged settings
+3. Guide you through Quick Setup or Advanced Setup
+4. Save settings to the appropriate file
+
+### Configuration Levels
+
+#### User-Level (Global)
+Personal defaults that apply to all projects:
+```bash
+/tts-plugin:configure --user
+```
+Location: `~/.claude/plugins/tts/settings.json`
+
+#### Project-Level (Team)
+Settings for a specific project, shared with your team via git:
+```bash
+/tts-plugin:configure --project
+```
+Location: `.claude/plugins/tts/settings.json`
+
+**Recommended .gitignore entry:**
+```
+# Keep local TTS overrides private
+.claude/plugins/tts/settings.local.json
+```
+
+#### Local-Level (Machine-Specific)
+Override project/user settings on your machine only:
+```bash
+/tts-plugin:configure --local
+```
+Location: `.claude/plugins/tts/settings.local.json` (automatically ignored by git)
+
+### Configuration Format
+
+Settings are stored in JSON format with logical grouping:
+
+```json
+{
+  "enabled": {
+    "global": true,
+    "pretool": true
+  },
+  "voice": {
+    "name": "af_bella",
+    "language": "en-gb",
+    "speed": 1.3
+  },
+  "models": {
+    "model": "$HOME/.local/share/kokoro-tts/kokoro-v1.0.onnx",
+    "voices": "$HOME/.local/share/kokoro-tts/voices-v1.0.bin"
+  },
+  "processing": {
+    "useTtsSection": true,
+    "maxLength": 5000
+  },
+  "paths": {
+    "stateDir": "$HOME/.local/state/claude-tts/session-state",
+    "logDir": "$HOME/.local/state/claude-tts/logs"
+  }
+}
+```
 
 ### Available Settings
 
-See `.env.example` for all available configuration options including:
-- Voice selection (af_bella, af_sarah, etc.)
-- Language (en-gb, en-us, etc.)
-- Speech speed (0.5-2.0)
-- Enable/disable hooks
-- TTS section extraction
-- Maximum text length
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `enabled.global` | boolean | true | Global TTS enable/disable (affects all hooks) |
+| `enabled.pretool` | boolean | true | PreToolUse hook enable/disable |
+| `voice.name` | string | "af_bella" | Voice to use (run `kokoro-tts --help-voices`) |
+| `voice.language` | string | "en-gb" | Language code (run `kokoro-tts --help-languages`) |
+| `voice.speed` | number | 1.3 | Speech speed (0.5-2.0, where 1.0 is normal) |
+| `models.model` | string | (path) | Path to kokoro-tts model file |
+| `models.voices` | string | (path) | Path to kokoro-tts voices file |
+| `processing.useTtsSection` | boolean | true | Extract "## TTS Response" section if present |
+| `processing.maxLength` | number | 5000 | Maximum characters to speak per message |
+| `paths.stateDir` | string | (path) | Directory for session state files |
+| `paths.logDir` | string | (path) | Directory for TTS log files |
+
+### Migrating from .env
+
+If you have an existing `.env` configuration file, migrate automatically:
+```bash
+/tts-plugin:migrate
+```
+
+This will:
+- Convert your `.env` to `settings.json`
+- Back up the original to `.env.backup`
+- Show you what was migrated
+
+See [MIGRATION.md](MIGRATION.md) for detailed migration guide.
 
 ## Usage
 
 ### Commands
 
-- `/tts-plugin:enable` - Enable TTS (persistent or session-only)
-- `/tts-plugin:disable` - Disable TTS (persistent or session-only)
-- `/tts-plugin:configure` - Interactive configuration wizard
-- `/tts-plugin:test` - Test TTS with sample or custom text
+- `/tts-plugin:enable [--user|--project|--local]` - Enable TTS at specified level
+- `/tts-plugin:disable [--user|--project|--local]` - Disable TTS at specified level
+- `/tts-plugin:configure [--user|--project|--local]` - Interactive configuration wizard
+- `/tts-plugin:test [message] [--voice VOICE] [--speed SPEED] [--lang LANG]` - Test TTS
+- `/tts-plugin:migrate` - Migrate from legacy .env to settings.json
 
 ### Skills
 
@@ -113,17 +211,25 @@ See `.env.example` for all available configuration options including:
 
 ### Enable/Disable TTS
 ```bash
-# Enable for current session only
+# Enable at user level (default, all projects)
 /tts-plugin:enable
+/tts-plugin:enable --user
 
-# Enable persistently (updates .env)
-/tts-plugin:enable --persistent
+# Enable at project level (committed to git, shared with team)
+/tts-plugin:enable --project
 
-# Disable for current session
+# Enable at local level (this machine only, not committed)
+/tts-plugin:enable --local
+
+# Disable at user level
 /tts-plugin:disable
+/tts-plugin:disable --user
 
-# Disable persistently
-/tts-plugin:disable --persistent
+# Disable at project level
+/tts-plugin:disable --project
+
+# Disable at local level
+/tts-plugin:disable --local
 ```
 
 ### Get Help
@@ -139,9 +245,10 @@ The `tts-setup` skill will automatically activate with relevant guidance.
 ### TTS Not Speaking
 
 1. Verify kokoro-tts is installed: `kokoro-tts --help`
-2. Check TTS is enabled: `/tts-plugin:configure` (check TTS_ENABLED)
+2. Check TTS is enabled: `/tts-plugin:configure` (check `enabled.global`)
 3. Test manually: `/tts-plugin:test`
 4. Check logs: `~/.local/state/claude-tts/logs/`
+5. Verify settings are valid JSON: `jq . ~/.claude/plugins/tts/settings.json`
 
 ### Wrong Voice or Speed
 
@@ -150,12 +257,38 @@ Use the configure command to update settings:
 /tts-plugin:configure
 ```
 
+Or manually edit your settings file:
+```bash
+# Edit user-level settings
+vim ~/.claude/plugins/tts/settings.json
+
+# Edit project-level settings
+vim .claude/plugins/tts/settings.json
+```
+
 ### TTS Too Verbose
 
 Disable the PreToolUse hook in configuration:
 ```bash
 /tts-plugin:configure
-# Set TTS_PRETOOL_ENABLED=false
+# Set enabled.pretool to false
+```
+
+### Configuration Not Taking Effect
+
+1. Restart Claude Code after changing settings
+2. Check which level settings are coming from - local overrides project, project overrides user
+3. Verify JSON syntax is valid: `jq . <settings-file>`
+
+### Migration Issues
+
+If you're migrating from .env and having issues:
+```bash
+# Automatic migration
+/tts-plugin:migrate
+
+# Or see detailed migration guide
+cat ~/.claude/plugins/tts-plugin/MIGRATION.md
 ```
 
 ## Development
@@ -165,23 +298,37 @@ Disable the PreToolUse hook in configuration:
 ```
 tts-plugin/
 ├── .claude-plugin/
-│   └── plugin.json          # Plugin manifest
-├── commands/                 # User commands
+│   └── plugin.json               # Plugin manifest
+├── commands/                      # User commands
 │   ├── enable.md
 │   ├── disable.md
 │   ├── configure.md
-│   └── test.md
-├── skills/                   # Auto-activating skills
+│   ├── test.md
+│   └── migrate.md                # NEW: Migration from .env
+├── skills/                        # Auto-activating skills
 │   └── tts-setup/
 │       └── SKILL.md
-├── hooks/                    # Event handlers
-│   ├── hooks.json           # Hook configuration
-│   └── scripts/             # Hook scripts
-├── scripts/                  # Shared utilities
-│   ├── tts-common.sh        # Core TTS library
+├── hooks/                         # Event handlers
+│   ├── hooks.json                # Hook configuration
+│   └── scripts/                  # Hook scripts
+├── scripts/                       # Shared utilities
+│   ├── tts-common.sh             # Core TTS library (JSON-based config)
 │   └── tts-instruction-template.txt
-├── .env.example             # Configuration template
+├── settings.default.json         # NEW: Default settings (shipped)
+├── MIGRATION.md                  # NEW: Migration guide
+├── .env.example                  # DEPRECATED: Legacy config template
 └── README.md
+```
+
+### Configuration Files (User's Machine)
+
+```
+~/.claude/plugins/tts/
+└── settings.json                 # User-level settings
+
+<project-root>/.claude/plugins/tts/
+├── settings.json                 # Project-level settings (committed)
+└── settings.local.json           # Local overrides (not committed)
 ```
 
 ## License

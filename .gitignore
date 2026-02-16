@@ -1,7 +1,11 @@
-# Environment files
+# Environment files (legacy)
 .env
 *.env
 !.env.example
+
+# Settings files - keep local overrides private
+.claude/plugins/tts/settings.local.json
+**/settings.local.json
 
 # Local state
 .local/

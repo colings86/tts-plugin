@@ -1,7 +1,7 @@
 ---
 name: enable
 description: Enable text-to-speech for Claude Code responses
-argument-hint: "[--persistent]"
+argument-hint: "[--user|--project|--local]"
 allowed-tools:
   - Bash
   - Read
@@ -11,53 +11,102 @@ allowed-tools:
 
 # Enable TTS Command
 
-Enable text-to-speech for Claude Code. Can enable for current session only or persistently by modifying the .env file.
+Enable text-to-speech for Claude Code at different configuration levels.
 
 ## Instructions
 
 When the user runs this command, follow these steps:
 
-1. **Check if --persistent flag is provided**:
-   - If `--persistent` flag is present, enable TTS persistently by modifying ~/.claude/tts-plugin.env
-   - Otherwise, enable only for current session (export environment variable)
+1. **Determine configuration level**:
+   - `--user`: User-level (global, all projects) → ~/.claude/plugins/tts/settings.json
+   - `--project`: Project-level (this project, committed) → .claude/plugins/tts/settings.json
+   - `--local`: Local-level (this machine, not committed) → .claude/plugins/tts/settings.local.json
+   - No flag: Default to user-level
 
-2. **For persistent enable**:
-   - Check if ~/.claude/tts-plugin.env exists
-   - If it doesn't exist, copy .env.example from the plugin directory:
+2. **Determine target file**:
+   - User: `$HOME/.claude/plugins/tts/settings.json`
+   - Project: `${CLAUDE_PROJECT_ROOT:-.}/.claude/plugins/tts/settings.json`
+   - Local: `${CLAUDE_PROJECT_ROOT:-.}/.claude/plugins/tts/settings.local.json`
+
+3. **Update or create settings file**:
+   - Create parent directory if needed:
      ```bash
-     cp ${CLAUDE_PLUGIN_ROOT}/.env.example ~/.claude/tts-plugin.env
+     mkdir -p <parent_directory>
      ```
-   - Update TTS_ENABLED=true in the .env file using Edit tool
-   - Inform user: "TTS enabled persistently. Configuration saved to ~/.claude/tts-plugin.env"
+   - If file doesn't exist, create from defaults:
+     ```bash
+     cp ${CLAUDE_PLUGIN_ROOT}/settings.default.json <target_file>
+     ```
+   - Update using jq to set enabled.global to true:
+     ```bash
+     jq '.enabled.global = true' <target_file> > <target_file>.tmp && mv <target_file>.tmp <target_file>
+     ```
 
-3. **For session-only enable**:
-   - Export TTS_ENABLED=true for current shell
-   - Inform user: "TTS enabled for current session only. Use --persistent flag to save this setting."
+4. **Report success**:
+   ```
+   ✅ TTS enabled at <level> level
 
-4. **Provide next steps**:
-   - Remind user that hook changes require restarting Claude Code
-   - Suggest testing: `/tts-plugin:test`
-   - Suggest configuration if needed: `/tts-plugin:configure`
+   Settings file: <file_path>
+
+   Next steps:
+     - Restart Claude Code for hooks to activate
+     - Test TTS: /tts-plugin:test
+     - Configure further: /tts-plugin:configure
+   ```
 
 ## Examples
 
-### Enable for current session
+### Enable at user level (default, all projects)
 ```
 /tts-plugin:enable
 ```
-
-Output: "TTS enabled for current session only. Restart Claude Code for hooks to activate."
-
-### Enable persistently
+or
 ```
-/tts-plugin:enable --persistent
+/tts-plugin:enable --user
 ```
 
-Output: "TTS enabled persistently. Configuration saved to ~/.claude/tts-plugin.env. Restart Claude Code for hooks to activate."
+Output:
+```
+✅ TTS enabled at user level
+
+Settings file: ~/.claude/plugins/tts/settings.json
+
+Next steps:
+  - Restart Claude Code for hooks to activate
+  - Test TTS: /tts-plugin:test
+```
+
+### Enable at project level (committed to git)
+```
+/tts-plugin:enable --project
+```
+
+Output:
+```
+✅ TTS enabled at project level
+
+Settings file: /path/to/project/.claude/plugins/tts/settings.json
+
+This setting will be committed to git and shared with your team.
+```
+
+### Enable at local level (not committed)
+```
+/tts-plugin:enable --local
+```
+
+Output:
+```
+✅ TTS enabled at local level
+
+Settings file: /path/to/project/.claude/plugins/tts/settings.local.json
+
+This setting is local to your machine and will not be committed to git.
+```
 
 ## Tips
 
-- Use session-only mode for quick testing
-- Use persistent mode to save the setting permanently
+- **User level**: Use for your personal default across all projects
+- **Project level**: Use to share TTS settings with your team (committed to git)
+- **Local level**: Use to override project/user settings on your machine only (add to .gitignore)
 - Remember to restart Claude Code after enabling for hooks to take effect
-- Test TTS is working with `/tts-plugin:test` after enabling

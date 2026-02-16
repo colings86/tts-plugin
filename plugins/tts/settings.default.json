@@ -1,0 +1,23 @@
+{
+  "enabled": {
+    "global": true,
+    "pretool": true
+  },
+  "voice": {
+    "name": "af_bella",
+    "language": "en-gb",
+    "speed": 1.3
+  },
+  "models": {
+    "model": "$HOME/.local/share/kokoro-tts/kokoro-v1.0.onnx",
+    "voices": "$HOME/.local/share/kokoro-tts/voices-v1.0.bin"
+  },
+  "processing": {
+    "useTtsSection": true,
+    "maxLength": 5000
+  },
+  "paths": {
+    "stateDir": "$HOME/.local/state/claude-tts/session-state",
+    "logDir": "$HOME/.local/state/claude-tts/logs"
+  }
+}

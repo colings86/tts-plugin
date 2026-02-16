@@ -3,38 +3,60 @@
 # Source this file in TTS hooks with: source ${CLAUDE_PLUGIN_ROOT}/scripts/tts-common.sh
 
 # ============================================================================
-# Load Configuration from .env file
+# Load Configuration from settings.json (hierarchical)
 # ============================================================================
 
-# Load .env file if it exists, otherwise fall back to environment variables
-TTS_ENV_FILE="$HOME/.claude/tts-plugin.env"
-if [ -f "$TTS_ENV_FILE" ]; then
-    # Source .env file (exports variables)
-    set -a  # automatically export all variables
-    source "$TTS_ENV_FILE"
-    set +a  # stop auto-export
+# Check for jq dependency
+if ! command -v jq &> /dev/null; then
+    echo "ERROR: jq is required for TTS plugin. Install: brew install jq (macOS) or apt-get install jq (Linux)" >&2
+    exit 1
 fi
 
-# ============================================================================
-# Configuration Defaults (used if not set in .env or environment)
-# ============================================================================
+# Define settings file paths (priority: local > project > user > defaults)
+DEFAULT_SETTINGS="${CLAUDE_PLUGIN_ROOT}/settings.default.json"
+USER_SETTINGS="$HOME/.claude/plugins/tts/settings.json"
+PROJECT_SETTINGS="${CLAUDE_PROJECT_ROOT:-.}/.claude/plugins/tts/settings.json"
+LOCAL_SETTINGS="${CLAUDE_PROJECT_ROOT:-.}/.claude/plugins/tts/settings.local.json"
 
-# Master TTS enable/disable switches
-: ${TTS_ENABLED:="true"}                # Global TTS enable/disable (affects all hooks)
-: ${TTS_PRETOOL_ENABLED:="true"}        # PreToolUse hook enable/disable (only if TTS_ENABLED=true)
+# Load and merge JSON settings from all hierarchy levels
+_load_json_settings() {
+    local merged_settings=""
+    merged_settings=$(cat "$DEFAULT_SETTINGS")
 
-# TTS Voice Configuration
-: ${TTS_VOICE:="af_bella"}              # Voice to use (run 'kokoro-tts --help-voices' to see all)
-: ${TTS_LANG:="en-gb"}                  # Language (run 'kokoro-tts --help-languages' to see all)
-: ${TTS_SPEED:="1.3"}                   # Speech speed (0.5-2.0)
-: ${TTS_MODEL:="$HOME/.local/share/kokoro-tts/kokoro-v1.0.onnx"}
-: ${TTS_VOICES:="$HOME/.local/share/kokoro-tts/voices-v1.0.bin"}
+    # Merge in priority order: defaults < user < project < local
+    [ -f "$USER_SETTINGS" ] && merged_settings=$(jq -s '.[0] * .[1]' <(echo "$merged_settings") "$USER_SETTINGS")
+    [ -f "$PROJECT_SETTINGS" ] && merged_settings=$(jq -s '.[0] * .[1]' <(echo "$merged_settings") "$PROJECT_SETTINGS")
+    [ -f "$LOCAL_SETTINGS" ] && merged_settings=$(jq -s '.[0] * .[1]' <(echo "$merged_settings") "$LOCAL_SETTINGS")
 
-# Text Processing Configuration
-: ${TTS_USE_TTS_SECTION:="true"}                                  # Extract "## TTS Response" section if present
-: ${TTS_MAX_LENGTH:="5000"}                                       # Max characters to speak per message
-: ${TTS_STATE_DIR:="$HOME/.local/state/claude-tts/session-state"}     # Directory for session state files
-: ${TTS_LOG_DIR:="$HOME/.local/state/claude-tts/logs"}                # Directory for TTS log files
+    echo "$merged_settings"
+}
+
+# Export JSON settings to environment variables
+_export_json_to_env() {
+    local json="$1"
+
+    export TTS_ENABLED=$(echo "$json" | jq -r '.enabled.global // true')
+    export TTS_PRETOOL_ENABLED=$(echo "$json" | jq -r '.enabled.pretool // true')
+    export TTS_VOICE=$(echo "$json" | jq -r '.voice.name // "af_bella"')
+    export TTS_LANG=$(echo "$json" | jq -r '.voice.language // "en-gb"')
+    export TTS_SPEED=$(echo "$json" | jq -r '.voice.speed // 1.3')
+    export TTS_MODEL=$(echo "$json" | jq -r '.models.model // "$HOME/.local/share/kokoro-tts/kokoro-v1.0.onnx"')
+    export TTS_VOICES=$(echo "$json" | jq -r '.models.voices // "$HOME/.local/share/kokoro-tts/voices-v1.0.bin"')
+    export TTS_USE_TTS_SECTION=$(echo "$json" | jq -r '.processing.useTtsSection // true')
+    export TTS_MAX_LENGTH=$(echo "$json" | jq -r '.processing.maxLength // 5000')
+    export TTS_STATE_DIR=$(echo "$json" | jq -r '.paths.stateDir // "$HOME/.local/state/claude-tts/session-state"')
+    export TTS_LOG_DIR=$(echo "$json" | jq -r '.paths.logDir // "$HOME/.local/state/claude-tts/logs"')
+
+    # Expand $HOME in paths
+    TTS_MODEL="${TTS_MODEL/#\$HOME/$HOME}"
+    TTS_VOICES="${TTS_VOICES/#\$HOME/$HOME}"
+    TTS_STATE_DIR="${TTS_STATE_DIR/#\$HOME/$HOME}"
+    TTS_LOG_DIR="${TTS_LOG_DIR/#\$HOME/$HOME}"
+}
+
+# Load merged settings and export to environment
+MERGED_SETTINGS=$(_load_json_settings)
+_export_json_to_env "$MERGED_SETTINGS"
 
 # ============================================================================
 # Internal Helper Functions

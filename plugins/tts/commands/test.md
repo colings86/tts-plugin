@@ -27,15 +27,18 @@ When the user runs this command, follow these steps:
    - Otherwise, use default: "This is a test of the text to speech system using Claude Code TTS plugin."
 
 3. **Load configuration**:
-   - Read ~/.claude/tts-plugin.env if it exists
-   - Use .env values as defaults
+   - Source tts-common.sh to load merged settings from all hierarchy levels:
+     ```bash
+     source ${CLAUDE_PLUGIN_ROOT}/scripts/tts-common.sh
+     ```
+   - This loads TTS_* environment variables from merged settings.json files
    - Override with command-line flags if provided
-   - If no .env and no flags, use reasonable defaults:
-     - Voice: af_bella
-     - Speed: 1.3
-     - Language: en-gb
-     - Model: $HOME/.local/share/kokoro-tts/kokoro-v1.0.onnx
-     - Voices: $HOME/.local/share/kokoro-tts/voices-v1.0.bin
+   - Available settings from merged config:
+     - Voice: TTS_VOICE
+     - Speed: TTS_SPEED
+     - Language: TTS_LANG
+     - Model: TTS_MODEL
+     - Voices: TTS_VOICES
 
 4. **Verify kokoro-tts is installed**:
    - Run `which kokoro-tts` to check installation

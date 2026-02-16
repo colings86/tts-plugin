@@ -1,7 +1,7 @@
 ---
 name: disable
 description: Disable text-to-speech for Claude Code responses
-argument-hint: "[--persistent]"
+argument-hint: "[--user|--project|--local]"
 allowed-tools:
   - Bash
   - Read
@@ -11,53 +11,109 @@ allowed-tools:
 
 # Disable TTS Command
 
-Disable text-to-speech for Claude Code. Can disable for current session only or persistently by modifying the .env file.
+Disable text-to-speech for Claude Code at different configuration levels. Also stops any currently running TTS.
 
 ## Instructions
 
 When the user runs this command, follow these steps:
 
-1. **Check if --persistent flag is provided**:
-   - If `--persistent` flag is present, disable TTS persistently by modifying ~/.claude/tts-plugin.env
-   - Otherwise, disable only for current session (export environment variable)
+1. **Determine configuration level**:
+   - `--user`: User-level (global, all projects) → ~/.claude/plugins/tts/settings.json
+   - `--project`: Project-level (this project, committed) → .claude/plugins/tts/settings.json
+   - `--local`: Local-level (this machine, not committed) → .claude/plugins/tts/settings.local.json
+   - No flag: Default to user-level
 
-2. **For persistent disable**:
-   - Check if ~/.claude/tts-plugin.env exists
-   - If it exists, update TTS_ENABLED=false using Edit tool
-   - If it doesn't exist, create it from .env.example and set TTS_ENABLED=false
-   - Inform user: "TTS disabled persistently. Configuration saved to ~/.claude/tts-plugin.env"
+2. **Determine target file**:
+   - User: `$HOME/.claude/plugins/tts/settings.json`
+   - Project: `${CLAUDE_PROJECT_ROOT:-.}/.claude/plugins/tts/settings.json`
+   - Local: `${CLAUDE_PROJECT_ROOT:-.}/.claude/plugins/tts/settings.local.json`
 
-3. **For session-only disable**:
-   - Export TTS_ENABLED=false for current shell
-   - Inform user: "TTS disabled for current session only. Use --persistent flag to save this setting."
+3. **Update or create settings file**:
+   - Create parent directory if needed:
+     ```bash
+     mkdir -p <parent_directory>
+     ```
+   - If file doesn't exist, create from defaults:
+     ```bash
+     cp ${CLAUDE_PLUGIN_ROOT}/settings.default.json <target_file>
+     ```
+   - Update using jq to set enabled.global to false:
+     ```bash
+     jq '.enabled.global = false' <target_file> > <target_file>.tmp && mv <target_file>.tmp <target_file>
+     ```
 
 4. **Stop any running TTS**:
-   - Kill any running kokoro-tts processes: `pkill -f kokoro-tts`
-   - Inform user if TTS was interrupted
+   - Kill any running kokoro-tts processes:
+     ```bash
+     pkill -f kokoro-tts
+     ```
+   - Note if TTS was interrupted
 
-5. **Provide next steps**:
-   - Remind user that hook changes require restarting Claude Code
-   - Suggest re-enabling if needed: `/tts-plugin:enable`
+5. **Report success**:
+   ```
+   ✅ TTS disabled at <level> level
+
+   Settings file: <file_path>
+   <"Any running TTS stopped." if TTS was killed>
+
+   Next steps:
+     - Restart Claude Code for hooks to deactivate
+     - Re-enable if needed: /tts-plugin:enable
+   ```
 
 ## Examples
 
-### Disable for current session
+### Disable at user level (default, all projects)
 ```
 /tts-plugin:disable
 ```
-
-Output: "TTS disabled for current session only. Any running TTS stopped."
-
-### Disable persistently
+or
 ```
-/tts-plugin:disable --persistent
+/tts-plugin:disable --user
 ```
 
-Output: "TTS disabled persistently. Configuration saved to ~/.claude/tts-plugin.env. Any running TTS stopped."
+Output:
+```
+✅ TTS disabled at user level
+
+Settings file: ~/.claude/plugins/tts/settings.json
+Any running TTS stopped.
+
+Restart Claude Code for hooks to fully deactivate.
+```
+
+### Disable at project level (committed to git)
+```
+/tts-plugin:disable --project
+```
+
+Output:
+```
+✅ TTS disabled at project level
+
+Settings file: /path/to/project/.claude/plugins/tts/settings.json
+
+This setting will be committed to git and shared with your team.
+```
+
+### Disable at local level (not committed)
+```
+/tts-plugin:disable --local
+```
+
+Output:
+```
+✅ TTS disabled at local level
+
+Settings file: /path/to/project/.claude/plugins/tts/settings.local.json
+
+This setting is local to your machine and will not be committed to git.
+```
 
 ## Tips
 
-- Use session-only mode for temporary silence
-- Use persistent mode to save the setting permanently
-- Remember to restart Claude Code after disabling for hooks to fully deactivate
-- You can re-enable TTS anytime with `/tts-plugin:enable`
+- **User level**: Disable TTS across all projects
+- **Project level**: Disable for this project and share with team
+- **Local level**: Override project/user settings on your machine only
+- Any running TTS is immediately stopped when you run this command
+- Remember to restart Claude Code for hook deactivation to take full effect
