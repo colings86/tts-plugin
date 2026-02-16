@@ -15,6 +15,7 @@ INPUT=$(cat)
 # Extract session ID and transcript path
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty')
+HOOK_EVENT_NAME=$(echo "$INPUT" | jq -r '.hook_event_name // empty')
 
 # Interrupt TTS and mark messages as read
 interrupt_tts_and_mark_read "$TRANSCRIPT_PATH" "$SESSION_ID"
@@ -33,9 +34,9 @@ if [ -z "$TTS_INSTRUCTION" ]; then
 fi
 
 # Return JSON with additionalContext field
-jq -n --arg ctx "$TTS_INSTRUCTION" '{
+jq -n --arg ctx "$TTS_INSTRUCTION" --arg hook "$HOOK_EVENT_NAME" '{
   "hookSpecificOutput": {
-    "hookEventName": "UserPromptSubmit",
+    "hookEventName": "$hook",
     "additionalContext": $ctx
   }
 }'

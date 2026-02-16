@@ -1,23 +1,25 @@
 #!/bin/bash
-# Claude Code TTS PreToolUse Hook - speaks new messages as they appear
-# Triggered on PreToolUse event (before each tool executes)
+# PreToolUse hook for tool-specific TTS handling
 
-# Source common TTS library (contains all configuration and logic)
+# Source common TTS library
 source "${CLAUDE_PLUGIN_ROOT}/scripts/tts-common.sh"
 
 # Read hook input
 INPUT=$(cat)
+TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
 
-# Extract required fields
-TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
+# Check if TTS is enabled
+if [ "$TTS_ENABLED" != "true" ]; then
+    exit 0
+fi
 
-# Check if PreToolUse TTS is enabled (global TTS_ENABLED is checked in the function)
+# Check if PreToolUse TTS is enabled
 if [ "$TTS_PRETOOL_ENABLED" != "true" ]; then
     exit 0
 fi
 
-# Process and speak new messages
-process_and_speak_new_messages "$TRANSCRIPT_PATH" "$SESSION_ID"
+# Dispatch to tool-specific handler
+source "${CLAUDE_PLUGIN_ROOT}/scripts/tts-tool-handlers/handler-registry.sh"
+dispatch_tool_handler "$TOOL_NAME" "$INPUT"
 
 exit 0

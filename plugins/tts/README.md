@@ -5,11 +5,73 @@ Text-to-speech system for Claude Code that reads Claude's responses aloud using 
 ## Features
 
 - 🔊 **Automatic TTS**: Speaks Claude's responses when they complete
+- 🛠️ **Tool-specific TTS**: Extensible system for speaking tool outputs (e.g., AskUserQuestion)
 - ⚡ **Real-time feedback**: Optional TTS during tool execution
 - 🎯 **Smart extraction**: Extracts TTS-optimized "## TTS Response" sections
 - 🎛️ **Configurable**: Customize voice, language, speed, and behavior
 - 🔇 **Interrupt handling**: Automatically stops playback when you submit a new prompt
 - 📝 **Session tracking**: Prevents re-speaking already-heard messages
+
+## Tool TTS Support
+
+The TTS plugin can speak outputs from specific tools, not just Claude's text responses. This is implemented using an extensible **PreToolUse hook** system with tool-specific handlers.
+
+### Supported Tools
+
+- **AskUserQuestion** - Speaks questions and options when Claude asks for input (before you answer!)
+
+### How It Works
+
+1. PreToolUse hook fires when a tool is about to be called
+2. Handler registry checks if a handler exists for that tool
+3. Tool-specific handler extracts and formats the relevant content
+4. Text is spoken asynchronously (doesn't block the tool)
+
+### Configuration
+
+Enable/disable tool TTS globally:
+
+```json
+{
+  "tools": {
+    "speak": true
+  }
+}
+```
+
+Configure specific tools:
+
+```json
+{
+  "tools": {
+    "AskUserQuestion": {
+      "speak": true,
+      "format": "sentence"
+    }
+  }
+}
+```
+
+**Format options for AskUserQuestion:**
+- `"sentence"` - "Your options are: Option A, Option B, or Option C" (default)
+- `"list"` - "Option 1: Option A. Option 2: Option B. Option 3: Option C."
+- `"simple"` - "Option A. Option B. Option C."
+
+### Adding New Tool Handlers
+
+The system is designed to be easily extensible. To add TTS support for a new tool:
+
+1. Create a handler file in `scripts/tts-tool-handlers/`
+2. Implement the `handle_tool_output()` function
+3. Add configuration to `settings.default.json`
+
+See [docs/TOOL_HANDLERS.md](docs/TOOL_HANDLERS.md) for detailed guide and examples.
+
+**Future tool ideas:**
+- WebSearch - Read search results summary
+- Bash - Speak command output (opt-in)
+- Task - Announce subagent completion
+- NotebookRead - Read cell outputs aloud
 
 ## Prerequisites
 
@@ -125,6 +187,14 @@ Settings are stored in JSON format with logical grouping:
   "paths": {
     "stateDir": "$HOME/.local/state/claude-tts/session-state",
     "logDir": "$HOME/.local/state/claude-tts/logs"
+  },
+  "tools": {
+    "speak": true,
+    "AskUserQuestion": {
+      "speak": true,
+      "format": "sentence",
+      "pause": 0.5
+    }
   }
 }
 ```
@@ -144,6 +214,10 @@ Settings are stored in JSON format with logical grouping:
 | `processing.maxLength` | number | 5000 | Maximum characters to speak per message |
 | `paths.stateDir` | string | (path) | Directory for session state files |
 | `paths.logDir` | string | (path) | Directory for TTS log files |
+| `tools.speak` | boolean | true | Global enable/disable for all tool TTS |
+| `tools.AskUserQuestion.speak` | boolean | true | Enable TTS for AskUserQuestion tool |
+| `tools.AskUserQuestion.format` | string | "sentence" | Format for options (sentence/list/simple) |
+| `tools.AskUserQuestion.pause` | number | 0.5 | Pause before speaking (reserved for future use) |
 
 ### Migrating from .env
 
@@ -313,7 +387,12 @@ tts-plugin/
 │   └── scripts/                  # Hook scripts
 ├── scripts/                       # Shared utilities
 │   ├── tts-common.sh             # Core TTS library (JSON-based config)
-│   └── tts-instruction-template.txt
+│   ├── tts-instruction-template.txt
+│   └── tts-tool-handlers/        # Tool-specific TTS handlers
+│       ├── handler-registry.sh   # Handler discovery/dispatch
+│       └── ask-user-question-handler.sh  # AskUserQuestion TTS logic
+├── docs/                          # Documentation
+│   └── TOOL_HANDLERS.md          # Guide for creating tool handlers
 ├── settings.default.json         # NEW: Default settings (shipped)
 ├── MIGRATION.md                  # NEW: Migration guide
 ├── .env.example                  # DEPRECATED: Legacy config template

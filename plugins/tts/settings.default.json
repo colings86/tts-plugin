@@ -19,5 +19,13 @@
   "paths": {
     "stateDir": "$HOME/.local/state/claude-tts/session-state",
     "logDir": "$HOME/.local/state/claude-tts/logs"
+  },
+  "tools": {
+    "speak": true,
+    "AskUserQuestion": {
+      "speak": true,
+      "format": "sentence",
+      "pause": 0.5
+    }
   }
 }
