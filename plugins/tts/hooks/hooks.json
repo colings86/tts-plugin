@@ -44,7 +44,7 @@
         "matcher": "*",
         "hooks": [
           {
-            "type": "command",
+            "type": "prompt",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/tts-interrupt.sh",
             "timeout": 10
           }
