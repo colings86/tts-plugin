@@ -32,9 +32,12 @@ if [ -z "$TTS_INSTRUCTION" ]; then
     TTS_INSTRUCTION="IMPORTANT: At the end of your response, add a \"## TTS Response\" section optimized for text-to-speech."
 fi
 
-# Return JSON with additionalContext field (correct way to inject instructions)
+# Return JSON with additionalContext field
 jq -n --arg ctx "$TTS_INSTRUCTION" '{
-  "additionalContext": $ctx
+  "hookSpecificOutput": {
+    "hookEventName": "UserPromptSubmit",
+    "additionalContext": $ctx
+  }
 }'
 
 exit 0
