@@ -36,7 +36,7 @@ fi
 # Return JSON with additionalContext field
 jq -n --arg ctx "$TTS_INSTRUCTION" --arg hook "$HOOK_EVENT_NAME" '{
   "hookSpecificOutput": {
-    "hookEventName": "$hook",
+    "hookEventName": $hook,
     "additionalContext": $ctx
   }
 }'
