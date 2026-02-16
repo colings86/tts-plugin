@@ -19,6 +19,7 @@ INPUT=$(cat)
 # Extract required fields
 TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty')
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
+CURRENT_MESSAGE=$(echo "$INPUT" | jq -c '.message // null')
 
 # WORKAROUND: Add delay to allow transcript to be fully written
 # The Stop event fires before text content is written to transcript
@@ -26,7 +27,7 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty')
 echo "Waiting 1 second for transcript to update..." >> "$DEBUG_LOG"
 sleep 1
 
-# Process and speak new messages
-process_and_speak_new_messages "$TRANSCRIPT_PATH" "$SESSION_ID"
+# Process and speak new messages (including current message)
+process_and_speak_new_messages "$TRANSCRIPT_PATH" "$SESSION_ID" "$CURRENT_MESSAGE"
 
 exit 0
