@@ -23,7 +23,7 @@ dispatch_tool_handler() {
 
     # Convert tool name to handler filename
     # "AskUserQuestion" → "ask-user-question-handler.sh"
-    local handler_name=$(echo "$tool_name" | sed 's/\([A-Z]\)/-\L\1/g' | sed 's/^-//')
+    local handler_name=$(echo "$tool_name" | sed 's/\([A-Z]\)/-\1/g' | sed 's/^-//' | tr '[:upper:]' '[:lower:]')
     local handler_path="${HANDLERS_DIR}/${handler_name}-handler.sh"
 
     echo "  handler_name: $handler_name" >> "$DEBUG_LOG"
