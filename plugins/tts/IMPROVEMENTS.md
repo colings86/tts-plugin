@@ -364,5 +364,253 @@ These improvements were implemented during testing and refinement:
 
 ---
 
-**Last Updated**: 2026-02-15
-**Status**: Suggestions for post-v0.1.14 development (Phase 7 testing complete)
+## JSON Configuration Error Handling (v0.2.0+)
+
+Based on Phase 10 testing of the settings.json migration, the following improvements are recommended for the new JSON configuration system:
+
+### Current Behavior Assessment
+
+**✅ Good:**
+- jq provides clear error messages for syntax errors
+- Merging with defaults handles partial settings well
+- Falls back gracefully when one level has errors
+- Errors don't completely break the plugin
+
+**⚠️ Could Improve:**
+- No data type validation (string accepted where number expected)
+- Script continues after errors (doesn't exit cleanly)
+- Error messages could be more user-friendly
+- No validation that required top-level keys exist
+
+### Recommended Enhancements
+
+#### 1. Add Schema Validation (High Priority)
+
+**Problem**: Invalid data types accepted (e.g., string `"not_a_number"` for `speed`)
+
+**Solution**: Validate data types before merging:
+
+```bash
+validate_settings() {
+    local json="$1"
+    local file_path="$2"
+    local errors=""
+
+    # Check voice.speed is a number
+    if ! echo "$json" | jq -e '.voice.speed | type == "number"' >/dev/null 2>&1; then
+        errors="${errors}\n  • voice.speed must be a number"
+    fi
+
+    # Check processing.maxLength is a number
+    if ! echo "$json" | jq -e '.processing.maxLength | type == "number"' >/dev/null 2>&1; then
+        errors="${errors}\n  • processing.maxLength must be a number"
+    fi
+
+    # Check boolean fields
+    for field in "enabled.global" "enabled.pretool" "processing.useTtsSection"; do
+        if ! echo "$json" | jq -e ".$field | type == \"boolean\"" >/dev/null 2>&1; then
+            errors="${errors}\n  • $field must be a boolean (true/false)"
+        fi
+    done
+
+    if [ -n "$errors" ]; then
+        echo "❌ Invalid settings in $file_path:$errors" >&2
+        return 1
+    fi
+    return 0
+}
+```
+
+**Effort**: 2-3 hours
+**Impact**: Prevents runtime failures, better error messages
+
+#### 2. Better Error Handling (High Priority)
+
+**Problem**: Script continues after JSON parse errors, leading to unexpected behavior
+
+**Solution**: Exit cleanly on critical errors:
+
+```bash
+_load_json_settings() {
+    local merged_settings=""
+    merged_settings=$(cat "$DEFAULT_SETTINGS")
+
+    # Validate and merge user settings
+    if [ -f "$USER_SETTINGS" ]; then
+        if ! jq . "$USER_SETTINGS" >/dev/null 2>&1; then
+            echo "❌ Invalid JSON syntax in $USER_SETTINGS" >&2
+            echo "" >&2
+            echo "Error details:" >&2
+            jq . "$USER_SETTINGS" 2>&1 | head -3 >&2
+            echo "" >&2
+            echo "To fix:" >&2
+            echo "  • Validate: jq . $USER_SETTINGS" >&2
+            echo "  • Reset: rm $USER_SETTINGS && /tts-plugin:configure" >&2
+            exit 1
+        fi
+        merged_settings=$(jq -s '.[0] * .[1]' <(echo "$merged_settings") "$USER_SETTINGS")
+    fi
+
+    # Repeat for project and local...
+
+    echo "$merged_settings"
+}
+```
+
+**Effort**: 1-2 hours
+**Impact**: Prevents cascading errors, clearer debugging
+
+#### 3. User-Friendly Error Messages (Medium Priority)
+
+**Problem**: Raw jq errors are cryptic for non-technical users
+
+**Current**:
+```
+jq: parse error: Invalid literal at line 24, column 7
+```
+
+**Improved**:
+```
+❌ TTS Configuration Error
+
+File: ~/.claude/plugins/tts/settings.json
+Error: Invalid JSON syntax (line 24, column 7)
+
+Common causes:
+  • Missing comma between fields
+  • Missing closing brace }
+  • Unquoted string values
+  • Trailing comma after last field
+
+Quick fixes:
+  1. Validate JSON: jq . ~/.claude/plugins/tts/settings.json
+  2. Use configure wizard: /tts-plugin:configure
+  3. View example: cat <plugin-root>/settings.default.json
+  4. Reset to defaults: rm ~/.claude/plugins/tts/settings.json
+```
+
+**Effort**: 2-3 hours
+**Impact**: Better user experience, reduced support burden
+
+#### 4. Validate Required Structure (Medium Priority)
+
+**Problem**: No check that JSON has expected top-level keys
+
+**Solution**:
+```bash
+validate_structure() {
+    local json="$1"
+    local required_keys=("enabled" "voice" "models" "processing" "paths")
+    local missing=""
+
+    for key in "${required_keys[@]}"; do
+        if ! echo "$json" | jq -e "has(\"$key\")" >/dev/null 2>&1; then
+            missing="${missing} $key"
+        fi
+    done
+
+    if [ -n "$missing" ]; then
+        echo "ERROR: Missing required sections:$missing" >&2
+        echo "Expected structure: enabled, voice, models, processing, paths" >&2
+        return 1
+    fi
+    return 0
+}
+```
+
+**Effort**: 1 hour
+**Impact**: Catches structural issues early
+
+#### 5. JSON Linting in Configure Command (Low Priority)
+
+**Problem**: Configure command could generate invalid JSON due to bugs
+
+**Solution**: Validate generated JSON before saving:
+
+```bash
+# In configure.md
+NEW_JSON=$(jq '.voice.name = "af_sarah"' "$TARGET_FILE")
+
+# Validate before writing
+if ! echo "$NEW_JSON" | jq . >/dev/null 2>&1; then
+    echo "❌ Internal error: Generated invalid JSON" >&2
+    echo "Please report this bug at: <github-url>" >&2
+    exit 1
+fi
+
+echo "$NEW_JSON" > "$TARGET_FILE"
+```
+
+**Effort**: 30 minutes
+**Impact**: Extra safety net, catches bugs in configure command
+
+### Additional Commands
+
+#### `/tts-plugin:validate` - Validate Settings
+
+Check settings files without loading them:
+
+```bash
+/tts-plugin:validate              # Validate all levels
+/tts-plugin:validate --user       # Validate user settings only
+/tts-plugin:validate --project    # Validate project settings only
+/tts-plugin:validate --local      # Validate local settings only
+```
+
+**Effort**: 2 hours
+**Value**: Easy troubleshooting, preventive maintenance
+
+#### `/tts-plugin:reset` - Reset Settings
+
+Easy way to recover from invalid configuration:
+
+```bash
+/tts-plugin:reset --user          # Reset user settings to defaults
+/tts-plugin:reset --project       # Reset project settings
+/tts-plugin:reset --all           # Reset all levels (with confirmation)
+```
+
+**Effort**: 1 hour
+**Value**: Quick recovery from configuration errors
+
+### Implementation Priority
+
+**Phase 1 (v0.2.0):**
+1. ✅ Better error messages (immediate UX improvement)
+2. ✅ Exit on invalid JSON (prevent cascading failures)
+3. ✅ Basic syntax validation (catch errors early)
+
+**Phase 2 (v0.2.1):**
+4. Data type validation (prevent runtime errors)
+5. Structure validation (ensure completeness)
+6. Add `/tts-plugin:validate` command
+
+**Phase 3 (v0.3.0):**
+7. JSON schema file (formal specification)
+8. Add `/tts-plugin:reset` command
+9. Enhanced error messages with suggested fixes
+
+### Testing Checklist
+
+After implementing improvements, verify:
+- ✅ Invalid JSON syntax detected (missing braces, commas)
+- ✅ Wrong data types rejected (string where number expected)
+- ✅ Missing required fields handled gracefully
+- ✅ Corrupted files at each hierarchy level
+- ✅ Empty files detected
+- ✅ Non-JSON content rejected
+- ✅ Helpful error messages displayed
+- ✅ Recovery paths work (reset, validate)
+
+### Backward Compatibility
+
+All enhancements must maintain compatibility:
+- ✅ Existing valid settings.json files continue to work
+- ✅ Migration from .env still functions
+- ✅ Partial settings files merge with defaults
+- ✅ No breaking changes to JSON structure
+
+---
+
+**Last Updated**: 2026-02-16
+**Status**: Phase 10 testing complete, recommendations added for JSON error handling

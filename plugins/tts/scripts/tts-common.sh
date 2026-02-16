@@ -35,14 +35,14 @@ _load_json_settings() {
 _export_json_to_env() {
     local json="$1"
 
-    export TTS_ENABLED=$(echo "$json" | jq -r '.enabled.global // true')
-    export TTS_PRETOOL_ENABLED=$(echo "$json" | jq -r '.enabled.pretool // true')
+    export TTS_ENABLED=$(echo "$json" | jq -r 'if .enabled.global == null then true else .enabled.global end')
+    export TTS_PRETOOL_ENABLED=$(echo "$json" | jq -r 'if .enabled.pretool == null then true else .enabled.pretool end')
     export TTS_VOICE=$(echo "$json" | jq -r '.voice.name // "af_bella"')
     export TTS_LANG=$(echo "$json" | jq -r '.voice.language // "en-gb"')
     export TTS_SPEED=$(echo "$json" | jq -r '.voice.speed // 1.3')
     export TTS_MODEL=$(echo "$json" | jq -r '.models.model // "$HOME/.local/share/kokoro-tts/kokoro-v1.0.onnx"')
     export TTS_VOICES=$(echo "$json" | jq -r '.models.voices // "$HOME/.local/share/kokoro-tts/voices-v1.0.bin"')
-    export TTS_USE_TTS_SECTION=$(echo "$json" | jq -r '.processing.useTtsSection // true')
+    export TTS_USE_TTS_SECTION=$(echo "$json" | jq -r 'if .processing.useTtsSection == null then true else .processing.useTtsSection end')
     export TTS_MAX_LENGTH=$(echo "$json" | jq -r '.processing.maxLength // 5000')
     export TTS_STATE_DIR=$(echo "$json" | jq -r '.paths.stateDir // "$HOME/.local/state/claude-tts/session-state"')
     export TTS_LOG_DIR=$(echo "$json" | jq -r '.paths.logDir // "$HOME/.local/state/claude-tts/logs"')
