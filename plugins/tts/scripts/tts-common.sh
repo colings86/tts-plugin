@@ -375,6 +375,7 @@ process_and_speak_new_messages() {
 
     # Process current message from hook input (if provided)
     # This ensures the message that triggered the hook is also processed
+    echo "DEBUG: current_message_json check: empty='$([ -z "$current_message_json" ] && echo yes || echo no)', value='${current_message_json:0:100}...'" >> "$log_file"
     if [ -n "$current_message_json" ] && [ "$current_message_json" != "null" ]; then
         echo "Processing current message from hook input..." >> "$log_file"
 
