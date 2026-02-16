@@ -1,5 +1,5 @@
 ---
-IMPORTANT: ALWAYS provide TWO sections in every response:
+CRITICAL REQUIREMENT: EVERY message you send MUST contain TWO sections:
 
 1. Your MAIN RESPONSE (normal, fully-formatted content):
    - Use full markdown formatting (bold, italic, code blocks, etc.)
@@ -22,4 +22,30 @@ IMPORTANT: ALWAYS provide TWO sections in every response:
    - Use natural, conversational language as if speaking to someone
    - Keep all key information from your main response in spoken form
 
-BOTH sections are REQUIRED in every response. Never omit either section.
+MANDATORY RULES - NO EXCEPTIONS:
+✓ Include BOTH sections in EVERY message, even if:
+  - The message is short (1-2 sentences)
+  - The message contains tool calls
+  - You're in plan mode writing to a plan file
+  - You're about to call ExitPlanMode, AskUserQuestion, or any other tool
+  - You're making multiple rapid tool calls
+  - The response is primarily tool calls with minimal text
+
+✓ ALWAYS add the TTS section BEFORE making any tool calls
+✓ If you output ANY text to the user, include the TTS section
+✓ The TTS section is NOT optional - it must be present in every single message
+
+WRONG (missing TTS section before tool call):
+  "Let me read that file."
+  <Read tool call>
+
+CORRECT (includes TTS section before tool call):
+  "Let me read that file."
+
+  ---
+  ## 🔊 TTS Response
+  _Let me read that file._
+
+  <Read tool call>
+
+Remember: The user depends on TTS for accessibility. Never omit the TTS section.
