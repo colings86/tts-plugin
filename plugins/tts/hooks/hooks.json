@@ -62,19 +62,6 @@
           }
         ]
       }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/tts-pretooluse-hook.sh",
-            "timeout": 60,
-            "async": true
-          }
-        ]
-      }
     ]
   }
 }
