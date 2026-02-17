@@ -12,6 +12,7 @@
 This document outlines the research, analysis, and decision to port the TTS plugin's core logic from bash (`tts-common.sh`) to Rust.
 
 **Revised Approach** (after licensing review): The port will be completed in two phases:
+
 - **Phase 1**: Rust implementation calling external `kokoro-tts` CLI (maintains current architecture, gains Rust benefits)
 - **Phase 2**: Future integration of ONNX runtime directly (once permissive-licensed solution is available)
 
@@ -59,6 +60,7 @@ plugins/tts/
 ```
 
 **Dependencies**:
+
 - `jq` (JSON processing)
 - `kokoro-tts` CLI (external TTS engine)
 - `bash` 4.0+
@@ -89,6 +91,7 @@ We evaluated three programming languages for the port: **Go**, **Python**, and *
 #### Cross-Platform Distribution
 
 All compiled languages (Go, Rust) require platform-specific binaries:
+
 - **Recommended approach**: One plugin with binaries in `bin/{os}-{arch}/` subdirectories
 - **Setup script**: Auto-detects platform and installs appropriate binary
 - **Distribution size**: ~10-15MB per binary × 4 platforms = ~40-60MB total
@@ -100,6 +103,7 @@ All compiled languages (Go, Rust) require platform-specific binaries:
 ### 1. Go
 
 **Pros**:
+
 - Single binary per platform (no runtime dependencies)
 - Fast startup (instant, no interpreter overhead)
 - Clean concurrency with goroutines
@@ -108,6 +112,7 @@ All compiled languages (Go, Rust) require platform-specific binaries:
 - 2-3 day porting effort
 
 **Cons**:
+
 - **No mature Kokoro integration** (weakest of the three)
 - External `kokoro-tts` CLI still required
 - ONNX integration requires CGO (complex cross-compilation)
@@ -122,6 +127,7 @@ All compiled languages (Go, Rust) require platform-specific binaries:
 ### 2. Python
 
 **Pros**:
+
 - **Fastest development** (1.5-2 days to port)
 - **Best Kokoro CLI tooling** (Python-native implementations)
 - Excellent ONNX support for future integration
@@ -129,6 +135,7 @@ All compiled languages (Go, Rust) require platform-specific binaries:
 - Extensive audio processing libraries
 
 **Cons**:
+
 - **Requires Python 3.9+ runtime** (users must install separately)
 - **200-500ms startup overhead** per hook invocation (noticeable)
 - Distribution complexity (PyInstaller creates 50-100MB binaries)
@@ -143,6 +150,7 @@ All compiled languages (Go, Rust) require platform-specific binaries:
 ### 3. Rust ⭐ **SELECTED**
 
 **Pros**:
+
 - ✅ **Native Kokoro integration**: [kokorox](https://github.com/byteowlz/kokorox) library available
 - ✅ **Eliminates external dependency**: No separate `kokoro-tts` installation needed
 - ✅ **Single binary**: Everything bundled (TTS engine, models, logic)
@@ -153,6 +161,7 @@ All compiled languages (Go, Rust) require platform-specific binaries:
 - ✅ **Production-grade**: Ideal for long-term reliability
 
 **Cons**:
+
 - Steeper learning curve (borrow checker, lifetimes)
 - Longer compile times during development
 - 3-5 day porting effort (higher initial investment)
@@ -207,14 +216,14 @@ After the initial decision to use Rust with kokorox integration, a comprehensive
 
 #### License Breakdown
 
-| Component | License | Compatible with MIT? |
-|-----------|---------|---------------------|
-| **Kokorox** | **GPL-3.0** | ❌ **NO - BLOCKER** |
-| ├─ espeak-rs-sys | MIT (wrapper) | ⚠️ (wraps GPL code) |
-| └─ espeak-ng | GPL-3.0 | ❌ Contamination source |
-| **Kokoro Models** | Apache 2.0 | ✅ YES |
-| **ONNX Runtime** | MIT | ✅ YES |
-| **Current Plugin** | MIT | ✅ (must preserve) |
+| Component          | License       | Compatible with MIT?    |
+| ------------------ | ------------- | ----------------------- |
+| **Kokorox**        | **GPL-3.0**   | ❌ **NO - BLOCKER**     |
+| ├─ espeak-rs-sys   | MIT (wrapper) | ⚠️ (wraps GPL code)     |
+| └─ espeak-ng       | GPL-3.0       | ❌ Contamination source |
+| **Kokoro Models**  | Apache 2.0    | ✅ YES                  |
+| **ONNX Runtime**   | MIT           | ✅ YES                  |
+| **Current Plugin** | MIT           | ✅ (must preserve)      |
 
 ### Implications
 
@@ -233,6 +242,7 @@ After the initial decision to use Rust with kokorox integration, a comprehensive
 Given the licensing constraints, we've adopted a **two-phase strategy**:
 
 #### **Phase 1: Rust + External CLI** (Initial Port)
+
 - Port bash logic to Rust
 - Call external `kokoro-tts` CLI (like current bash implementation)
 - Maintain MIT license
@@ -240,6 +250,7 @@ Given the licensing constraints, we've adopted a **two-phase strategy**:
 - **Timeline**: 2-3 days
 
 **Benefits**:
+
 - ✅ No GPL licensing conflicts
 - ✅ Immediate maintainability improvement over bash
 - ✅ Fast startup (Rust binary calls CLI)
@@ -247,11 +258,13 @@ Given the licensing constraints, we've adopted a **two-phase strategy**:
 - ✅ Users keep existing `kokoro-tts` installation
 
 #### **Phase 2: ONNX Integration** (Future Enhancement)
+
 - Build permissive-licensed ONNX wrapper OR
 - Wait for MIT/Apache Rust Kokoro implementation OR
 - Use ONNX Runtime directly with custom IPA conversion
 
 **Benefits**:
+
 - ✅ Eventually eliminate external CLI dependency
 - ✅ Self-contained binary
 - ✅ Maintains MIT license
@@ -276,6 +289,7 @@ Given the licensing constraints, we've adopted a **two-phase strategy**:
 ### Licensing Requirements (Phase 1)
 
 Since we're using external CLI, no changes to current licensing:
+
 - ✅ Plugin remains **MIT**
 - ✅ Users install `kokoro-tts` separately (their responsibility)
 - ✅ Clean separation between MIT code and GPL tool
@@ -283,6 +297,7 @@ Since we're using external CLI, no changes to current licensing:
 ### Licensing Requirements (Phase 2 - Future)
 
 If/when we integrate ONNX directly with permissive licensing:
+
 - Must use MIT or Apache 2.0 licensed components only
 - Include attribution for Kokoro models (Apache 2.0 requirement)
 - Include attribution for ONNX Runtime (MIT requirement)
@@ -294,6 +309,7 @@ If/when we integrate ONNX directly with permissive licensing:
 ### Phase 1 Goals (Initial Port - 2-3 days)
 
 **Primary Goals**:
+
 1. ✅ **Replace bash with Rust** for better maintainability
 2. ✅ **Call external `kokoro-tts` CLI** (preserve current architecture)
 3. ✅ **Preserve MIT license** (no GPL dependencies)
@@ -303,6 +319,7 @@ If/when we integrate ONNX directly with permissive licensing:
 7. ✅ **Better error handling** than bash (explicit errors, no silent failures)
 
 **Secondary Goals**:
+
 - **Easier testing**: Unit and integration tests for core logic
 - **Performance**: Fast Rust startup (~50ms) calling external CLI
 - **Extensibility**: Clean handler registry pattern using Rust traits
@@ -313,12 +330,14 @@ If/when we integrate ONNX directly with permissive licensing:
 **When**: After Phase 1 is stable and proven
 
 **Primary Goals**:
+
 1. ✅ **Eliminate `kokoro-tts` CLI dependency** via permissive ONNX integration
 2. ✅ **Single binary** with embedded TTS engine
 3. ✅ **Maintain MIT license** (use only MIT/Apache components)
 4. ✅ **Bundle or cache ONNX models** locally
 
 **Approach Options**:
+
 - Build MIT-licensed Rust wrapper for ONNX + Kokoro
 - Use ONNX Runtime directly with custom text-to-IPA conversion
 - Wait for community MIT/Apache Kokoro implementation
@@ -337,7 +356,7 @@ If/when we integrate ONNX directly with permissive licensing:
 ### Phase 1 Structure (External CLI)
 
 ```
-tts-plugin/
+tts-plugin/plugins/tts
 ├── rust/                          # NEW: Rust implementation
 │   ├── Cargo.toml                 # Dependencies (serde, serde_json, etc.)
 │   ├── src/
@@ -393,6 +412,7 @@ tts-plugin/
 ## Implementation Phases (Phase 1 - External CLI)
 
 ### Day 1: Core Infrastructure
+
 - Set up Rust project structure (`cargo init`)
 - Dependencies: `serde`, `serde_json`, `anyhow` (error handling)
 - Config loader (replaces jq-based merging) - hierarchical JSON merging
@@ -400,24 +420,28 @@ tts-plugin/
 - Session state management (structured types vs file-based UUID tracking)
 
 ### Day 2: TTS Integration (External CLI)
+
 - **CLI wrapper** (`tts/cli.rs`): Call `kokoro-tts` via `std::process::Command`
 - Text preprocessing: TTS section extraction, truncation
 - Process management: Pipe text to stdin, handle output
 - Lock management for concurrent hook invocations (file-based or mutex)
 
 ### Day 2-3: Hooks & Handlers
+
 - Hook entry point (dispatch by hook type: Stop, PreToolUse, etc.)
 - Handler registry pattern using Rust traits
 - Port existing handlers (AskUserQuestion, etc.)
 - Main workflow: `process_and_speak_new_messages` port
 
 ### Day 3: Cross-Platform Builds
+
 - Cross-compilation for all platforms (darwin-arm64, darwin-x86_64, linux-x86_64, linux-arm64)
 - Setup script for installation (platform detection)
 - Binary packaging in `bin/{os}-{arch}/` directories
 - Hook scripts updated to call Rust binary
 
 ### Day 3: Testing & Polish
+
 - Unit tests for config loading, transcript parsing
 - Integration tests with sample transcripts
 - Error handling refinement (replace bash silent failures)
@@ -432,12 +456,14 @@ tts-plugin/
 **When**: After Phase 1 is stable and validated in production
 
 **Scope**:
+
 - Replace `tts/cli.rs` with `tts/onnx.rs`
 - Integrate permissive-licensed ONNX wrapper (when available)
 - Bundle or download Kokoro models on first run
 - Eliminate external `kokoro-tts` dependency
 
 **Prerequisites**:
+
 - MIT or Apache 2.0 licensed Rust Kokoro implementation available, OR
 - Custom implementation using ONNX Runtime directly
 
@@ -515,11 +541,13 @@ The Phase 2 ONNX integration is successful when:
 5. **No behavior changes**: Same voices, same quality, same configuration
 
 **What Changes**:
+
 - ✅ Hooks call Rust binary instead of bash script
 - ✅ Better error messages
 - ✅ Faster hook startup
 
 **What Stays the Same**:
+
 - ✅ Still requires `kokoro-tts` CLI installed
 - ✅ Same configuration files
 - ✅ Same TTS quality and behavior
@@ -533,12 +561,14 @@ The Phase 2 ONNX integration is successful when:
 ### For Developers
 
 **Phase 1**:
+
 - Bash hooks replaced with calls to Rust binary
 - Configuration format unchanged (JSON hierarchy)
 - Handler development in Rust (replace bash functions with Rust traits)
 - Test framework: Rust unit tests + integration tests
 
 **Phase 2**:
+
 - Same as Phase 1, but with ONNX integration instead of CLI calls
 
 ---
@@ -569,6 +599,7 @@ The Phase 2 ONNX integration is successful when:
 After comprehensive research and licensing review, the TTS plugin will be ported to Rust in **two phases**:
 
 #### **Phase 1: Rust + External CLI** (2-3 days)
+
 - Replaces 522-line bash script with structured Rust code
 - Calls external `kokoro-tts` CLI (preserves current architecture)
 - Delivers immediate maintainability, type safety, and performance benefits
@@ -576,18 +607,21 @@ After comprehensive research and licensing review, the TTS plugin will be ported
 - Low risk, proven approach
 
 **Value Delivered**:
+
 - ✅ Better than bash (type safety, error handling, testability)
 - ✅ Faster than Python (no 200-500ms interpreter overhead)
 - ✅ Cleaner than Go (better for this use case with similar external CLI)
 - ✅ No licensing issues (MIT preserved)
 
 #### **Phase 2: ONNX Integration** (Future - 4-6 days)
+
 - Eliminates external `kokoro-tts` CLI dependency
 - Integrates permissive-licensed ONNX solution (when available)
 - Creates truly self-contained binary
 - Maintains MIT license throughout
 
 **Strategic Benefits**:
+
 1. **Incremental Value**: Phase 1 delivers immediate improvements without betting on ONNX complexity
 2. **Risk Mitigation**: Validate Rust architecture before complex ONNX integration
 3. **License Safety**: MIT license maintained, no GPL contamination
@@ -597,6 +631,7 @@ After comprehensive research and licensing review, the TTS plugin will be ported
 ### Why This Approach Wins
 
 The phased strategy combines the best of all worlds:
+
 - **Better than staying with bash**: Type safety, maintainability, testing
 - **Better than Python**: No interpreter overhead on hook invocations
 - **Better than Go**: Equivalent for Phase 1, stronger ecosystem for future Phase 2
